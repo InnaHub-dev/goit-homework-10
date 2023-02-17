@@ -37,10 +37,10 @@ class AddressBook(UserDict):
         return user
 
     def show_records(self):
+        name: Name.value
+        record: Record
         normal_data = {}
         for name, record in self.data.items():
-            name: Name.value
-            record: Record
             normal_data.update({name: [phone.value for phone in record.phone]})
         json_look = json.dumps(normal_data, indent=4, sort_keys = True)
         return json_look
