@@ -11,16 +11,18 @@ class MyException(Exception):
 
 class AddressBook(UserDict):
 
-    def __init__(self):
-        self.data = {}
-        self.names = self.data.keys()
-        self.users = self.data.values()
-     
-    def add_record(self, name, *phone):
-        if name in self.names:
-            raise MyException('This user exists.')
-        user = Record(name, *phone)
-        self.data.update({user.name.value:user})
+    # Це лишне, так Ви прибираєте всю функціональність класу, від якого успадковуєте(
+    # def __init__(self):
+    #     self.data = {}
+    #     # self.names = self.data.keys()
+    #     # self.users = self.data.values()
+    
+    # Сюди просто приймаємо екземпляр класу рекорд 
+    def add_record(self, record): #name, *phone
+        # if name in self.names:
+        #     raise MyException('This user exists.')
+        # user = # Record(name, *phone) Всі записи створюємо явно зовні коду
+        self.data[record.name.value] = record #.update({user.name.value:user})
         return 'Done!'
     
     def delete_record(self, name):
@@ -31,85 +33,98 @@ class AddressBook(UserDict):
             return "This user isn't in the Book"
     
     def get(self, name):
-        if not name in self.names:
+        if not name in self.data:
             raise MyException("This user isn't in the Book")
         user = self.data[name]
         return user
 
     def show_records(self):
-        name: Name.value
-        record: Record
-        normal_data = {}
-        for name, record in self.data.items():
-            normal_data.update({name: [phone.value for phone in record.phone]})
-        json_look = json.dumps(normal_data, indent=4, sort_keys = True)
-        return json_look
+        # name: Name.value
+        # record: Record
+        # normal_data = {}
+        # for name, record in self.data.items():
+        #     normal_data.update({name: [phone.value for phone in record.phone]})
+        # json_look = json.dumps(normal_data, indent=4, sort_keys = True)
+        # return json_look
+        return "\n".join([f"{r.name.value}: {', '.join([p.value for p in r.phones])}"
+                          for r in self.data.values()])
     
 
-class Field:
-    pass
+class Field: # От тут дуже даремно)))
+    def __init__(self, value) -> None:
+        self.value = value
 
 
 class Name(Field):
+    pass
+    # def __init__(self, name: str) -> None:
+    #     self.value: str
+    #     self.value = name
 
-    def __init__(self, name: str) -> None:
-        self.value: str
-        self.value = name
 
-
-class Phone(Field):
-
-    def __init__(self, *phones: list) -> None:
-       self.value = [*phones][0]
+class Phone(Field): # клас описує тільки одну сутність!
+    pass
+    # def __init__(self, *phones: list) -> None:
+    #    self.value = [*phones][0]
 
 
 class Record:
 
-    def __init__(self, name: str, *phones: list) -> None:
-        self.name = Name(name)
-        if len(phones) == 0:
-            self.phone = []
+    def __init__(self, name: Name, phone: Phone=None) -> None: # Може бути телефон, а може і не бути)
+        self.name = name
+        self.phones = [phone] if phone else []
+        # if len(phones) == 0:
+        #     self.phone = []
 
-        else:
-            self.phone = [Phone(phone) for phone in phones]
+        # else:
+        #     self.phone = [Phone(phone) for phone in phones]
 
-    def add_number(self, phone: str) -> None:
-        self.phone.append(Phone(phone))
+    def add_number(self, phone: Phone) -> None:
+        # self.phone.append(Phone(phone))
+        self.phones.append(phone)
+        
+    def add_numbers(self, phones: list[Phone]) -> None:
+        self.phones += phones
 
-    def delete_number(self, pos: int = 0) -> None:
-       
-        if len(self.phone) > 1:
-            pos = self.ask_index()
-        self.phone.remove(self.phone[pos])
+    def delete_number(self, phone: Phone) -> None:  
+        for p in self.phones:
+            if phone.value == p.value:
+                self.phones.remove(p)   
+        # if len(self.phone) > 1:
+        #     pos = self.ask_index()
+        # self.phone.remove(self.phone[pos])
 
-    def edit_number(self, phone: str, pos: int = 0) -> str: 
-            
-            if len(self.phone) > 1:
-                pos = self.ask_index()
+    def edit_number(self, phone: Phone, new_phone: Phone) -> str: 
+            # можна додати перевірки
+            self.delete_number(phone)
+            self.add_number(new_phone)
+            # if len(self.phone) > 1:
+            #     pos = self.ask_index()
 
-            elif len(self.phone) == 0:
-                self.phone.append(Phone(phone))
-            self.phone[pos] = Phone(phone)
+            # elif len(self.phone) == 0:
+            #     self.phone.append(Phone(phone))
+            # self.phone[pos] = Phone(phone)
             return 'Done!'
 
     def show_record(self):
-        print(self.name.value)  
-        for i, number in enumerate([phone.value for phone in self.phone], 0): 
-            print(f'{i}: {number}')
+        # print(self.name.value)  
+        # for i, number in enumerate([phone.value for phone in self.phone], 0): 
+        #     print(f'{i}: {number}')
+        return f'{self.name.value}: {",".join([p.value for p in self.phones])}'
 
-    def ask_index(self):
+    # def ask_index(self):
 
-        self.show_record()
-        while True: 
-            try:        
-                pos = int(input('Enter the index of a phone you want to edit >>> '))
-                if pos > len(self.phone) - 1:
-                    raise IndexError
-                return pos
-            except IndexError:
-                print('Wrong index. Try again.')
-            except ValueError:
-                print('Index should be a number. Try again.')
+    #     self.show_record()
+    #     while True: 
+    #         try:        
+    #             pos = int(input('Enter the index of a phone you want to edit >>> '))
+    #             if pos > len(self.phone) - 1:
+    #                 raise IndexError
+    #             return pos
+    #         except IndexError:
+    #             print('Wrong index. Try again.')
+    #         except ValueError:
+    #             print('Index should be a number. Try again.')
 
 
 def decorator_input(func: Callable) -> Callable:
@@ -129,25 +144,39 @@ def decorator_input(func: Callable) -> Callable:
 
 @decorator_input
 def add_user(*args: str) -> str:
-    contacts.add_record(*args)
-    return 'Done!'
+    name = Name(args[0])
+    try:
+        phone = Phone(args[1])
+    except IndexError:
+        phone = None
+    rec = Record(name, phone)
+    contacts.add_record(rec)
 
 @decorator_input
 def add_number(*args: str) -> str:
-    user = contacts.get(args[0])
-    user.add_number(args[1])
+    name = Name(args[0])
+    phone = Phone(args[1])
+    rec = contacts[name.value]
+    rec.add_number(phone)    
+    # user = contacts.get(name.value)
+    # user.add_number(args[1])
     return 'Done!'
 
 @decorator_input
 def change(*args: str) -> str:
-    user = contacts.get(args[0])
-    user.edit_number(args[1])
+    name = Name(args[0])
+    phone = Phone(args[1])
+    new_phone = Phone(args[2])
+    rec = contacts.get(name.value)
+    rec.edit_number(phone, new_phone)
+    # user = contacts.get(args[0])
+    # user.edit_number(args[1])
     return 'Done!'
 
 @decorator_input
 def delete_number(*args: str) -> str:
-    user = contacts.get(args[0])
-    user.delete_number()
+    rec = contacts.get(args[0])
+    rec.delete_number(Phone(args[0]))
     return 'Done!'
 
 @decorator_input
@@ -162,14 +191,16 @@ def get_command(words: str) -> Callable:
     raise KeyError("This command doesn't exist")
 
 def get_contacts() -> AddressBook:
-    with open('contacts.txt', 'a+') as fh:
-        fh.seek(0)
+    with open('contacts.txt', 'r') as fh:
+        # fh.seek(0)
         text = fh.readlines()
         contacts = AddressBook()
         for line in text:
-            words = line.split(': ')
-            phones = re.findall(r'[+()\-0-9]+(?=[\'])', words[1])
-            contacts.add_record(words[0], *phones) 
+            name, phones = line.split(': ')
+            phones = phones.split(",")
+            rec = Record(Name(name))
+            rec.add_numbers([Phone(p.strip()) for p in phones])
+            contacts.add_record(rec) 
         return contacts      
 
 @decorator_input
@@ -182,17 +213,18 @@ def hello() -> str:
 
 @decorator_input
 def phone(*args: str) -> str:
-    user = contacts.get(args[0])
-    phones = [phone.value for phone in user.phone]
-    return phones
+    rec = contacts.get(args[0])
+    # phones = [phone.value for phone in user.phone]
+    return rec.show_record()
 
 def write_contacts() -> None:
     text = []
-    contacts_ord = OrderedDict(sorted(contacts.items()))
-    for name, record in contacts_ord.items():
-        text.append(f'{name}: {[num.value for num in record.phone]}\n')
+    # contacts_ord = OrderedDict(sorted(contacts.items()))
+    # for rec in contacts:
+    #     text.append(r)
     with open('contacts.txt', 'w') as fh:
-        fh.write(''.join(text))
+        fh.write(contacts.show_records())
+        fh.write("\n")
 
 contacts = get_contacts()
 
