@@ -1,5 +1,4 @@
 import functools
-import json 
 import re
 from collections import OrderedDict
 from collections import UserDict
@@ -10,17 +9,9 @@ class MyException(Exception):
     pass
 
 class AddressBook(UserDict):
-
-    def __init__(self):
-        self.data = {}
-        self.names = self.data.keys()
-        self.users = self.data.values()
-     
-    def add_record(self, name, *phone):
-        if name in self.names:
-            raise MyException('This user exists.')
-        user = Record(name, *phone)
-        self.data.update({user.name.value:user})
+ 
+    def add_record(self, record):
+        self.data.update({record.name.value:record})
         return 'Done!'
     
     def delete_record(self, name):
@@ -31,79 +22,65 @@ class AddressBook(UserDict):
             return "This user isn't in the Book"
     
     def get(self, name):
-        if not name in self.names:
+        if not name in self.data.keys():
             raise MyException("This user isn't in the Book")
         user = self.data[name]
         return user
 
     def show_records(self):
-        name: Name.value
-        record: Record
-        normal_data = {}
-        for name, record in self.data.items():
-            normal_data.update({name: [phone.value for phone in record.phone]})
-        json_look = json.dumps(normal_data, indent=4, sort_keys = True)
-        return json_look
-    
+        sorted_dict = OrderedDict(sorted(self.data.items()))
+        return "\n".join([record.show_record() for record in sorted_dict.values()])
+            
 
 class Field:
-    pass
+    def __init__(self, value):
+        self.value = value
 
 
 class Name(Field):
-
-    def __init__(self, name: str) -> None:
-        self.value: str
-        self.value = name
+    pass
 
 
 class Phone(Field):
-
-    def __init__(self, *phones: list) -> None:
-       self.value = [*phones][0]
+    pass
 
 
 class Record:
 
-    def __init__(self, name: str, *phones: list) -> None:
-        self.name = Name(name)
-        if len(phones) == 0:
-            self.phone = []
+    def __init__(self, name: Name, phone: Phone=None) -> None:
+        self.name = name
+        self.phones = [phone] if phone else []
 
-        else:
-            self.phone = [Phone(phone) for phone in phones]
+    def add_phone(self, phone: Phone) -> None:
+        self.phones.append(phone)
 
-    def add_number(self, phone: str) -> None:
-        self.phone.append(Phone(phone))
+    def add_numbers(self, phones: list[Phone]):
+        self.phones.extend(phones)
 
     def delete_number(self, pos: int = 0) -> None:
-       
-        if len(self.phone) > 1:
+        if len(self.phones) > 1:
             pos = self.ask_index()
-        self.phone.remove(self.phone[pos])
+        self.phones.remove(self.phones[pos])
 
-    def edit_number(self, phone: str, pos: int = 0) -> str: 
-            
-            if len(self.phone) > 1:
+    def edit_number(self, phone: Phone, pos: int = 0) -> str:    
+            if len(self.phones) > 1:
                 pos = self.ask_index()
-
-            elif len(self.phone) == 0:
-                self.phone.append(Phone(phone))
-            self.phone[pos] = Phone(phone)
+            elif len(self.phones) == 0:
+                self.phones.append(phone)
+            self.phones[pos] = phone
             return 'Done!'
 
     def show_record(self):
-        print(self.name.value)  
-        for i, number in enumerate([phone.value for phone in self.phone], 0): 
-            print(f'{i}: {number}')
+        return f"{self.name.value}: {', '.join([phone.value for phone in self.phones])}"
 
     def ask_index(self):
-
-        self.show_record()
+        print(self.name.value) 
+        for i, number in enumerate([phone.value for phone in self.phones], 0): 
+            print(f'{i}: {number}')
         while True: 
             try:        
                 pos = int(input('Enter the index of a phone you want to edit >>> '))
-                if pos > len(self.phone) - 1:
+                if pos > len(self.phones) - 1:
                     raise IndexError
                 return pos
             except IndexError:
@@ -129,25 +106,31 @@ def decorator_input(func: Callable) -> Callable:
 
 @decorator_input
 def add_user(*args: str) -> str:
-    contacts.add_record(*args)
+    name = Name(args[0])
+    try:
+        phone = Phone(args[1])
+    except IndexError:
+        phone = None
+    record = Record(name, phone)
+    contacts.add_record(record)
     return 'Done!'
 
 @decorator_input
 def add_number(*args: str) -> str:
-    user = contacts.get(args[0])
-    user.add_number(args[1])
+    record = contacts.get(args[0])
+    record.add_phone(Phone(args[1]))
     return 'Done!'
 
 @decorator_input
 def change(*args: str) -> str:
-    user = contacts.get(args[0])
-    user.edit_number(args[1])
+    record = contacts.get(args[0])
+    record.edit_number(Phone(args[1]))
     return 'Done!'
 
 @decorator_input
 def delete_number(*args: str) -> str:
-    user = contacts.get(args[0])
-    user.delete_number()
+    record = contacts.get(args[0])
+    record.delete_number()
     return 'Done!'
 
 @decorator_input
@@ -167,9 +150,12 @@ def get_contacts() -> AddressBook:
         text = fh.readlines()
         contacts = AddressBook()
         for line in text:
-            words = line.split(': ')
-            phones = re.findall(r'[+()\-0-9]+(?=[\'])', words[1])
-            contacts.add_record(words[0], *phones) 
+            if line != '\n':
+                name, phones = line.split(': ')
+                record = Record(Name(name))
+                phones = phones.split(', ')
+                record.add_numbers([Phone(phone.strip()) for phone in phones])
+                contacts.add_record(record) 
         return contacts      
 
 @decorator_input
@@ -182,17 +168,13 @@ def hello() -> str:
 
 @decorator_input
 def phone(*args: str) -> str:
-    user = contacts.get(args[0])
-    phones = [phone.value for phone in user.phone]
-    return phones
+    record = contacts.get(args[0])
+    return record.show_record()
 
 def write_contacts() -> None:
-    text = []
-    contacts_ord = OrderedDict(sorted(contacts.items()))
-    for name, record in contacts_ord.items():
-        text.append(f'{name}: {[num.value for num in record.phone]}\n')
     with open('contacts.txt', 'w') as fh:
-        fh.write(''.join(text))
+        fh.write(contacts.show_records())
+        fh.write('\n')
 
 contacts = get_contacts()
 
