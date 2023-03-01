@@ -9,6 +9,12 @@ class MyException(Exception):
     pass
 
 class AddressBook(UserDict):
+        
+    def __getitem__(self, name):
+        if not name in self.data.keys():
+            raise MyException("This user isn't in the Book")
+        user = self.data[name]
+        return user
  
     def add_record(self, record):
         self.data.update({record.name.value:record})
@@ -20,12 +26,6 @@ class AddressBook(UserDict):
             return f"{name} was removed"
         except KeyError:
             return "This user isn't in the Book"
-    
-    def get(self, name):
-        if not name in self.data.keys():
-            raise MyException("This user isn't in the Book")
-        user = self.data[name]
-        return user
 
     def show_records(self):
         sorted_dict = OrderedDict(sorted(self.data.items()))
@@ -107,13 +107,16 @@ def decorator_input(func: Callable) -> Callable:
 @decorator_input
 def add_user(*args: str) -> str:
     name = Name(args[0])
-    try:
-        phone = Phone(args[1])
-    except IndexError:
-        phone = None
-    record = Record(name, phone)
-    contacts.add_record(record)
-    return 'Done!'
+    if name.value in contacts.keys():
+        return "This user already exists."
+    else:
+        try:
+            phone = Phone(args[1])
+        except IndexError:
+            phone = None
+        record = Record(name, phone)
+        contacts.add_record(record)
+        return 'Done!'
 
 @decorator_input
 def add_number(*args: str) -> str:
@@ -168,7 +171,7 @@ def hello() -> str:
 
 @decorator_input
 def phone(*args: str) -> str:
-    record = contacts.get(args[0])
+    record = contacts[args[0]]
     return record.show_record()
 
 def write_contacts() -> None:
@@ -192,14 +195,12 @@ commands_dict = {('hello','hi', 'hey'):hello,
 def main():
 
     while True:
-
         words = input(">>> ").split(' ')
         try:
             func = get_command(words)
         except KeyError as error:
             print(error)
             continue
-
         print(func(*words[1:])) 
         if func.__name__ == 'goodbye':
             write_contacts()
