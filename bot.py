@@ -54,21 +54,28 @@ class Record:
     def add_phone(self, phone: Phone) -> None:
         self.phones.append(phone)
 
-    def add_numbers(self, phones: list[Phone]):
+    def add_phones(self, phones: list[Phone]):
         self.phones.extend(phones)
 
-    def delete_number(self, pos: int = 0) -> None:
+    def delete_phone(self, pos: int = 0) -> None:
         if len(self.phones) > 1:
             pos = self.ask_index()
-        self.phones.remove(self.phones[pos])
+        try:
+            self.phones.remove(self.phones[pos])
+            return 'Done!'
+        except:
+            return pos
 
-    def edit_number(self, phone: Phone, pos: int = 0) -> str:    
+    def edit_phone(self, phone: Phone, pos: int = 0) -> str:    
             if len(self.phones) > 1:
                 pos = self.ask_index()
             elif len(self.phones) == 0:
                 self.phones.append(phone)
-            self.phones[pos] = phone
-            return 'Done!'
+            try:
+                self.phones[pos] = phone
+                return 'Done!'
+            except:
+                return pos
 
     def show_record(self):
         return f"{self.name.value}: {', '.join([phone.value for phone in self.phones])}"
@@ -84,9 +91,9 @@ class Record:
                     raise IndexError
                 return pos
             except IndexError:
-                print('Wrong index. Try again.')
+                return 'Wrong index. Try again.'
             except ValueError:
-                print('Index should be a number. Try again.')
+                return 'Index should be a number. Try again.'
 
 
 def decorator_input(func: Callable) -> Callable:
@@ -119,7 +126,7 @@ def add_user(*args: str) -> str:
         return 'Done!'
 
 @decorator_input
-def add_number(*args: str) -> str:
+def add_phone(*args: str) -> str:
     record = contacts.get(args[0])
     record.add_phone(Phone(args[1]))
     return 'Done!'
@@ -127,14 +134,14 @@ def add_number(*args: str) -> str:
 @decorator_input
 def change(*args: str) -> str:
     record = contacts.get(args[0])
-    record.edit_number(Phone(args[1]))
-    return 'Done!'
+    mes = record.edit_phone(Phone(args[1]))
+    return mes
 
 @decorator_input
-def delete_number(*args: str) -> str:
+def delete_phone(*args: str) -> str:
     record = contacts.get(args[0])
-    record.delete_number()
-    return 'Done!'
+    mes = record.delete_phone()
+    return mes
 
 @decorator_input
 def delete_user(*args: str) -> str:
@@ -157,7 +164,7 @@ def get_contacts() -> AddressBook:
                 name, phones = line.split(': ')
                 record = Record(Name(name))
                 phones = phones.split(', ')
-                record.add_numbers([Phone(phone.strip()) for phone in phones])
+                record.add_phones([Phone(phone.strip()) for phone in phones])
                 contacts.add_record(record) 
         return contacts      
 
@@ -183,9 +190,9 @@ contacts = get_contacts()
 
 commands_dict = {('hello','hi', 'hey'):hello,
                  ('add',):add_user,
-                 ('add_number',):add_number,
+                 ('add_phone',):add_phone,
                  ('change',):change,
-                 ('delete_number',):delete_number,
+                 ('delete_phone',):delete_phone,
                  ('delete_user',):delete_user,
                  ('phone',):phone,
                  ('showall',):contacts.show_records,
